@@ -24,13 +24,31 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login']);
 
 
-Route::middleware(['auth:sanctum' , 'role:manager'])->group(function () {
-//    Route::post('/tasks', [TaskController::class, 'store']);
+Route::middleware(['auth:sanctum'])->group(function () {
+
+
+    Route::middleware('role:manager')->group(function () {
+   Route::post('/tasks', [TaskController::class, 'store']);
+   Route::put('/tasks/{id}', [TaskController::class, 'update']);
+   Route::post('/tasks/{id}/dependencies', [TaskController::class, 'addDependencies']);
 });
 
 
+    // get all tasks
+   Route::get('/tasks', [TaskController::class, 'index']);
+
+   // get task details
+   Route::get('/tasks/{id}', [TaskController::class, 'show']);
 
 
-Route::middleware(['auth:sanctum' , 'role:user'])->group(function () {
-//    Route::post('/my-tasks', [TaskController::class, 'myTasks']);
+
+Route::middleware('role:user')->group(function () {
+
+   Route::patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+
 });
+
+
+});
+
+
