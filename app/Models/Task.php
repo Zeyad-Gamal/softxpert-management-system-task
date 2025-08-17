@@ -9,6 +9,15 @@ class Task extends Model
 {
     use HasFactory;
 
+        protected $fillable = [
+        'title',
+        'description',
+        'status',
+         'assignee_id',
+         'created_by',
+         'due_date',
+    ];
+
 
     public function dependencies()
     {
