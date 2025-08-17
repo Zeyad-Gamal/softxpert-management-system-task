@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class TaskDependency extends Model
 {
     use HasFactory;
-
-
+ protected $fillable = [
+        'task_id',
+        'dependency_task_id',
+    ];
+public $timestamps = false;
 
     public function task()
     {
