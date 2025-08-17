@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Models\TaskDependency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,19 +37,18 @@ class TaskController extends Controller
     }
 
 
-
-
-
-
-
-
-
-
-
-
     public function show($id)
     {
-        // Logic to get task details by ID
+        $task = Task::with('dependencies.dependencyTask')->findOrFail($id);
+
+        if(Auth::user()->role === 'user' && $task->assignee_id !== Auth::id()) {
+            return response()->json([
+                'message' => 'Forbidden ,you do not have permission to view this task.'
+            ], 403);
+        }
+
+        return response()->json($task);
+        
     }
 
 
@@ -85,18 +85,93 @@ class TaskController extends Controller
 
 
 
-    public function update($id, Request $request)
+    public function update(Request $request , $id)
     {
-        // Logic to update an existing task
+        
+
+        $task = Task::findOrFail($id);
+        if(Auth::user()->role === 'manager'){
+            $data = $request->validate([
+                'title' => 'sometimes | string | max:255',
+                'description' => 'nullable | string',
+                'assignee_id' => 'nullable | exists:users,id',
+                'due_date' => 'nullable | date',
+                'status' => 'nullable | in:pending,completed,canceled'
+            ]);
+
+            $task->update($data);
+        }
+        else{
+            return response()->json([
+                'message' => 'Forbidden'
+            ], 403);
+        }
+
+        return response()->json($task);
     }
 
-    public function addDependencies($id, Request $request)
+    public function addDependencies(Request $request , $id)
     {
-        // Logic to add dependencies to a task
+        $task = Task::findOrFail($id);
+
+        $data = $request->validate([
+            'dependencies' => 'required | array',
+            'dependencies.*' => 'exists:tasks,id'
+        ]);
+
+        foreach ($data['dependencies'] as $dependencyId) {
+            if($dependencyId == $task->id) {
+                return response()->json([
+                    'message' => 'A task cannot depend on itself.'
+                ], 422);
+            }
+
+            TaskDependency::firstOrCreate([
+                'task_id' => $task->id,
+                'dependency_task_id' => $dependencyId
+            ]);
+
+
+        }
+
+        return response()->json(['message' => 'Dependencies added successfully'],201);
+
     }
 
-    public function updateStatus($id, Request $request)
+    public function updateStatus(Request $request , $id)
     {
-        // Logic to update the status of a task
+        
+        $task = Task::findOrFail($id);
+        
+        if($task->assignee_id !== Auth::id() ) {
+            return response()->json([
+                'message' => 'Forbidden'
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'status' => 'required | in:pending,completed,canceled'
+        ]);
+
+
+        if($data['status'] === 'completed' ) {
+            $unfinishedDependencies = TaskDependency::where('task_id', $task->id)
+                ->whereHas('dependencyTask', function($query) {
+                    $query->where('status', '!=', 'completed');
+                })->count();
+
+                if($unfinishedDependencies > 0) {
+                    return response()->json([
+                        'message' => 'Cannot mark task as completed. It has unfinished dependencies.'
+                    ], 422);
+                }
+        }
+
+
+        $task->update([
+            'status' => $data['status']
+        ]);
+
+        return response()->json($task);
     }
 }
