@@ -9,8 +9,10 @@
 
 ## Authentication
 - Use `/api/login` with seeded users:
-  - User: `manager@gmail.com / 123`
-  - User: `user@gmail.com / 123`
+  - Manager: `manager1@gmail.com / 123`
+  - Manager: `manager@gmail.com / password`
+  - User: `user1@gmail.com / 123`
+  - User: `user@gmail.com / password`
 - Copy the token and set it as **Bearer Token** in Postman
 
 ## Endpoints
